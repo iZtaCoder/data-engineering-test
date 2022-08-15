@@ -5,6 +5,8 @@ import logging
 
 from config import BEARER_TOKEN
 from db_engine import DBEngine
+from tweepy import StreamRule
+from twitter_stream import StreamTweets
 
 
 def get_twitter_client(bearer_token):
@@ -60,8 +62,8 @@ def save_tweets(tweets: list):
 if __name__ == "__main__":
     client = get_twitter_client(BEARER_TOKEN)
 
-    user_name = "BBCWorld"  # name of the user we want to search for
-    limit = 150  # number of tweets
+    user_name = "Every3Minutes"  # name of the user we want to search for
+    limit = 100  # number of tweets
     query = f"from:{user_name} -is:retweet"  # query for fetch the user tweets except retweets
     fields = [
         "created_at",
@@ -71,7 +73,15 @@ if __name__ == "__main__":
     ]  # data that the tweet must to have
 
     # receive the last tweets
-    tweets = get_tweets(user_name=user_name, limit=limit, fields=fields)
-    if tweets:
-        # if there are tweets then save them in a parquet file and SQL table
-        save_tweets(tweets)
+    # tweets = get_tweets(user_name=user_name, limit=limit, fields=fields)
+    # if tweets:
+    # if there are tweets then save them in a parquet file and SQL table
+    # save_tweets(tweets)
+
+    # opens a connection until the tweets limit
+    stream = StreamTweets(bearer_token=BEARER_TOKEN, user_name=user_name, limit=limit)
+    # add a filter as a rule
+    rule = StreamRule(value=query)
+    stream.add_rules(rule)
+    # streming tweets in real-time
+    stream.filter(expansions=["author_id"], tweet_fields=fields, threaded=True)
